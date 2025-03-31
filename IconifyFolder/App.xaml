@@ -1,0 +1,13 @@
+﻿<Application
+    x:Class="IconifyFolder.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="clr-namespace:IconifyFolder.Converters"
+    xmlns:local="clr-namespace:IconifyFolder"
+    StartupUri="./Views/MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <converters:Icon2Image x:Key="IconConvert" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
