@@ -15,18 +15,15 @@ namespace IconifyFolder.ViewModels
     {
         [ObservableProperty]
         private string _selectedFolder;
+
         [ObservableProperty]
-        private ObservableCollection<string> _selectedFolders = new ();
-
-
+        private ObservableCollection<string> _selectedFolders = new();
 
         [ObservableProperty]
         private string _targetFolder;
-        
+
         [ObservableProperty]
         private bool _autoScanSubfolders;
-
-      
 
         public ObservableCollection<ProgramItem> Programs { get; } = new ObservableCollection<ProgramItem>();
 
@@ -58,8 +55,6 @@ namespace IconifyFolder.ViewModels
 
                 LoadPrograms();
             }
-
-
         }
 
         private void LoadPrograms()
@@ -97,19 +92,18 @@ namespace IconifyFolder.ViewModels
                         IsCloseMatch = isCloselyMatching
                     });
 
-                     break;
-                    
+                    break;
                 }
             }
         }
-
 
         private Icon GetIcon(string filePath)
         {
             // 实现从可执行文件中提取图标的逻辑
             return Icon.ExtractAssociatedIcon(filePath);
         }
-        #endregion
+
+        #endregion BrowseFolder&GetIcons
 
         #region ApplyIcons
 
@@ -122,7 +116,8 @@ namespace IconifyFolder.ViewModels
             {
                 if (program.IsSelected)
                 {
-                    await Task.Run(() => {
+                    await Task.Run(() =>
+                    {
                         try
                         {
                             string folderPath = program.FolderPath ?? Path.GetDirectoryName(program.FilePath);
@@ -150,7 +145,8 @@ namespace IconifyFolder.ViewModels
             // 一次性刷新所有处理过的文件夹
             if (processedFolders.Count > 0)
             {
-                await Task.Run(() => {
+                await Task.Run(() =>
+                {
                     foreach (var folder in processedFolders)
                     {
                         RefreshSystemIcons(folder);
@@ -204,6 +200,7 @@ namespace IconifyFolder.ViewModels
 
         // 定义正确的系统常量
         private const uint SHCNE_ASSOCCHANGED = 0x08000000;
+
         private const uint SHCNE_UPDATEITEM = 0x00002000;
         private const uint SHCNE_UPDATEDIR = 0x00001000;
         private const uint SHCNF_PATH = 0x0005;
@@ -402,19 +399,19 @@ namespace IconifyFolder.ViewModels
             }
         }
 
-        #endregion
+        #endregion ApplyIcons
 
         [RelayCommand]
-        public void SelectAll() 
+        public void SelectAll()
         {
-            foreach(var item in Programs)
+            foreach (var item in Programs)
             {
                 item.IsSelected = true;
             }
-         
         }
+
         [RelayCommand]
-        public void UnSelectAll() 
+        public void UnSelectAll()
         {
             foreach (var item in Programs)
             {
@@ -425,15 +422,11 @@ namespace IconifyFolder.ViewModels
         [RelayCommand]
         public void CheckBoxChecked(ProgramItem item)
         {
-
         }
 
         [RelayCommand]
         public void CheckBoxUnchecked(ProgramItem item)
         {
         }
-
-
-
     }
 }

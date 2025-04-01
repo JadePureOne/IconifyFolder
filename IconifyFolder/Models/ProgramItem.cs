@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media;
-using System.Drawing;
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace IconifyFolder.Models
 {
-    public partial class ProgramItem:ObservableObject
+    public partial class ProgramItem : ObservableObject
     {
         [ObservableProperty]
         private string _name;

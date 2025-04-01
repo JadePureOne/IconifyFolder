@@ -1,7 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using System.Configuration;
 using System.Data;
-using System.Windows;
 
 namespace IconifyFolder
 {
@@ -39,6 +37,7 @@ namespace IconifyFolder
         }
 
         #region 注册视图和视图模型
+
         /// <summary>
         /// 注册视图和视图模型
         /// </summary>
@@ -74,7 +73,7 @@ namespace IconifyFolder
                 throw;
             }
         }
-        #endregion
-    }
 
+        #endregion 注册视图和视图模型
+    }
 }

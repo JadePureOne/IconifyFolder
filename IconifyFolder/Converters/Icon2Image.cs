@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
@@ -17,10 +11,10 @@ namespace IconifyFolder.Converters
         {
             if (value is Icon icon)
             {
-                 return System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
-                icon.Handle,
-                new Int32Rect(0, 0, icon.Width, icon.Height),
-                BitmapSizeOptions.FromEmptyOptions());
+                return System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
+               icon.Handle,
+               new Int32Rect(0, 0, icon.Width, icon.Height),
+               BitmapSizeOptions.FromEmptyOptions());
             }
 
             return null;
