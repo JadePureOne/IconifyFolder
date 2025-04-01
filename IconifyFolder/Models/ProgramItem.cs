@@ -5,14 +5,28 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Drawing;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace IconifyFolder.Models
 {
-    public class ProgramItem
+    public partial class ProgramItem:ObservableObject
     {
-        public string Name { get; set; }
-        public string FilePath { get; set; }
-        public Icon Icon { get; set; }
-        public bool IsSelected { get; set; }
+        [ObservableProperty]
+        private string _name;
+
+        [ObservableProperty]
+        private string _filePath;
+
+        [ObservableProperty]
+        private string _folderPath;
+
+        [ObservableProperty]
+        private Icon _icon;
+
+        [ObservableProperty]
+        private bool _isSelected;
+
+        [ObservableProperty]
+        private bool _isCloseMatch;
     }
 }

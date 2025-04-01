@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IconifyFolder.Models;
+using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -13,7 +14,11 @@ namespace IconifyFolder.ViewModels
     {
         [ObservableProperty]
         private string _selectedFolder;
-        
+        [ObservableProperty]
+        private ObservableCollection<string> _selectedFolders = new ();
+
+
+
         [ObservableProperty]
         private string _targetFolder;
         
@@ -29,49 +34,74 @@ namespace IconifyFolder.ViewModels
         [RelayCommand]
         public void BrowseFolder()
         {
-            using (var dialog = new FolderBrowserDialog())
+            var dialog = new OpenFolderDialog()
             {
-                dialog.Description = "请选择文件夹";
-                dialog.ShowNewFolderButton = false;
+                Title = "请选择文件夹",
+                Multiselect = true,
+            };
 
-                if (dialog.ShowDialog() == DialogResult.OK)
+            if (dialog.ShowDialog() == true)
+            {
+                SelectedFolders.Clear();
+
+                foreach (var folder in dialog.FolderNames)
                 {
-                    SelectedFolder = dialog.SelectedPath;
-                    LoadPrograms();
+                    SelectedFolders.Add(folder);
                 }
+
+                // 为了兼容性，如果有选择至少一个文件夹，设置第一个为SelectedFolder
+                if (SelectedFolders.Count > 0)
+                {
+                    SelectedFolder = SelectedFolders[0];
+                }
+
+                LoadPrograms();
             }
+
+
         }
 
         private void LoadPrograms()
         {
             Programs.Clear();
 
-            if (string.IsNullOrEmpty(SelectedFolder))
+            if (SelectedFolders.Count == 0)
                 return;
 
             var searchOption = AutoScanSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            string folderName = new DirectoryInfo(SelectedFolder).Name;
 
-            foreach (var file in Directory.GetFiles(SelectedFolder, "*.exe", searchOption))
+            foreach (var folder in SelectedFolders)
             {
-                var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(file);
-                var icon = GetIcon(file);
+                if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
+                    continue;
 
-                // 检查文件名是否包含文件夹名的一部分
-                bool isCloselyMatching = fileNameWithoutExtension.Contains(folderName, StringComparison.OrdinalIgnoreCase);
-                if (isCloselyMatching)
+                string folderName = new DirectoryInfo(folder).Name;
+
+                foreach (var file in Directory.GetFiles(folder, "*.exe", searchOption))
                 {
+                    var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(file);
+                    var icon = GetIcon(file);
+
+                    // 检查文件名是否包含文件夹名的一部分
+                    bool isCloselyMatching = fileNameWithoutExtension.Contains(folderName, StringComparison.OrdinalIgnoreCase);
+
+                    // 添加程序项
                     Programs.Add(new ProgramItem
                     {
                         Name = Path.GetFileName(file),
                         FilePath = file,
-                        Icon = icon
+                        IsSelected = false,
+                        Icon = icon,
+                        FolderPath = folder,
+                        IsCloseMatch = isCloselyMatching
                     });
-                    break;
-                }
 
+                     break;
+                    
+                }
             }
         }
+
 
         private Icon GetIcon(string filePath)
         {
@@ -80,37 +110,73 @@ namespace IconifyFolder.ViewModels
         }
         #endregion
 
-
         #region ApplyIcons
+
         [RelayCommand]
-        public void ApplyIcons()
+        public async Task ApplyIconsAsync()
         {
+            List<string> processedFolders = new List<string>();
+
             foreach (var program in Programs)
             {
                 if (program.IsSelected)
                 {
-                    try
-                    {
-                        string folderPath = Path.GetDirectoryName(program.FilePath);
-                        Icon icon = program.Icon;
-
-                        if (icon != null && Directory.Exists(folderPath))
+                    await Task.Run(() => {
+                        try
                         {
-                            string tempIconPath = Path.Combine(folderPath, $"{program.Name}_icon.ico");
-                            SaveIconToFile(icon, tempIconPath);
-                            ApplyIconToFolder(folderPath, tempIconPath);
+                            string folderPath = program.FolderPath ?? Path.GetDirectoryName(program.FilePath);
+                            Icon icon = program.Icon;
+
+                            if (icon != null && Directory.Exists(folderPath))
+                            {
+                                string tempIconPath = Path.Combine(folderPath, $"{program.Name}_icon.ico");
+                                SaveIconToFile(icon, tempIconPath);
+                                bool success = ApplyIconToFolder(folderPath, tempIconPath);
+                                if (success)
+                                {
+                                    processedFolders.Add(folderPath);
+                                }
+                            }
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Error applying icon to {program.Name}: {ex.Message}");
-                    }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error applying icon to {program.Name}: {ex.Message}");
+                        }
+                    });
                 }
+            }
+
+            // 一次性刷新所有处理过的文件夹
+            if (processedFolders.Count > 0)
+            {
+                await Task.Run(() => {
+                    foreach (var folder in processedFolders)
+                    {
+                        RefreshSystemIcons(folder);
+                    }
+
+                    // 最后一次全局刷新
+                    SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
+                });
             }
         }
 
         private void SaveIconToFile(Icon icon, string iconPath)
         {
+            // 确保先删除可能存在的旧图标文件
+            if (File.Exists(iconPath))
+            {
+                try
+                {
+                    File.SetAttributes(iconPath, FileAttributes.Normal);
+                    File.Delete(iconPath);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"无法删除旧图标文件: {ex.Message}");
+                }
+            }
+
             using (FileStream fs = new FileStream(iconPath, FileMode.Create))
             {
                 icon.Save(fs);
@@ -118,11 +184,8 @@ namespace IconifyFolder.ViewModels
         }
 
         // 正确的Win32 API声明
-        [DllImport("shell32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        public static extern void SHChangeNotify(uint wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
-
-        [DllImport("shell32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        public static extern void SHChangeNotify(uint wEventId, uint uFlags, string dwItem1, IntPtr dwItem2);
+        [DllImport("shell32.dll", CharSet = CharSet.Auto)]
+        private static extern void SHChangeNotify(uint wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
 
         // 定义正确的系统常量
         private const uint SHCNE_ASSOCCHANGED = 0x08000000;
@@ -204,9 +267,6 @@ namespace IconifyFolder.ViewModels
                 // 第六步：设置文件夹属性 - 必须设置为系统文件夹
                 dirInfo.Attributes |= FileAttributes.System;
 
-                // 第七步：刷新系统缓存
-                RefreshSystemIcons(folderPath);
-
                 Console.WriteLine($"✅ 图标已成功应用到：{folderPath}");
                 return true;
             }
@@ -277,19 +337,16 @@ namespace IconifyFolder.ViewModels
         {
             try
             {
-                // 使用多种通知方式确保图标更新
-
-                // 1. 通知文件夹更新
-                SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, folderPath, IntPtr.Zero);
-
-                // 2. 通知项目更新
-                SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH, folderPath, IntPtr.Zero);
-
-                // 3. 通知文件关联变更
-                SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
-
-                // 等待系统处理通知
-                Thread.Sleep(300);
+                // 使用字符串路径版本的API调用
+                IntPtr pszPath = Marshal.StringToHGlobalAuto(folderPath);
+                try
+                {
+                    SHChangeNotify(SHCNE_UPDATEDIR, SHCNF_PATH, pszPath, IntPtr.Zero);
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(pszPath);
+                }
             }
             catch (Exception ex)
             {
@@ -331,7 +388,6 @@ namespace IconifyFolder.ViewModels
         }
 
         #endregion
-
 
         [RelayCommand]
         public void SelectAll() 
