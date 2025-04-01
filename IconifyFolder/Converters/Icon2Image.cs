@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
 
@@ -16,19 +17,10 @@ namespace IconifyFolder.Converters
         {
             if (value is Icon icon)
             {
-                using (var iconStream = new MemoryStream())
-                {
-                    icon.Save(iconStream);
-                    iconStream.Seek(0, SeekOrigin.Begin);
-
-                    var bitmapImage = new BitmapImage();
-                    bitmapImage.BeginInit();
-                    bitmapImage.StreamSource = iconStream;
-                    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmapImage.EndInit();
-
-                    return bitmapImage;
-                }
+                 return System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(
+                icon.Handle,
+                new Int32Rect(0, 0, icon.Width, icon.Height),
+                BitmapSizeOptions.FromEmptyOptions());
             }
 
             return null;

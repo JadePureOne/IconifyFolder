@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IconifyFolder.Models;
+using ImageMagick;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -177,9 +178,23 @@ namespace IconifyFolder.ViewModels
                 }
             }
 
-            using (FileStream fs = new FileStream(iconPath, FileMode.Create))
+            //using (FileStream fs = new FileStream(iconPath, FileMode.Create))
+            //{
+            //    icon.Save(fs);
+            //}
+            // 使用 Magick.NET 保存为 ICO 格式
+            using (var bitmap = icon.ToBitmap())
+            using (var memoryStream = new MemoryStream())
             {
-                icon.Save(fs);
+                bitmap.Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
+                memoryStream.Position = 0;
+
+                using (var image = new MagickImage(memoryStream))
+                {
+                    // 明确指定 ICO 格式
+                    image.Format = MagickFormat.Ico;
+                    image.Write(iconPath);
+                }
             }
         }
 
@@ -392,13 +407,19 @@ namespace IconifyFolder.ViewModels
         [RelayCommand]
         public void SelectAll() 
         {
-
+            foreach(var item in Programs)
+            {
+                item.IsSelected = true;
+            }
          
         }
         [RelayCommand]
-        public void DeSelectAll() 
+        public void UnSelectAll() 
         {
-            
+            foreach (var item in Programs)
+            {
+                item.IsSelected = false;
+            }
         }
 
         [RelayCommand]

@@ -12,6 +12,8 @@
   <ItemGroup>
 	<FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
 	<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+	<PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.6.0" />
+	<PackageReference Include="Magick.NET.Core" Version="14.6.0" />
     <PackageReference Include="Masuit.Tools.Abstractions" Version="2025.1.7" />
     <PackageReference Include="Masuit.Tools.AspNetCore" Version="2025.1.7" />
     <PackageReference Include="Masuit.Tools.Core" Version="2025.1.7" />

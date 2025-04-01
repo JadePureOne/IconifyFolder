@@ -95,7 +95,7 @@
                         Content="全选" />
                     <Button
                         Width="80"
-                        Command="{Binding UnselectAllCommand}"
+                        Command="{Binding UnSelectAllCommand}"
                         Content="取消全选" />
                 </StackPanel>
             </Grid>
