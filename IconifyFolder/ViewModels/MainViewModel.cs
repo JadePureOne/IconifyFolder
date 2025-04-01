@@ -1,53 +1,33 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IconifyFolder.Models;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media;
-using System.Windows.Forms;
-using System.IO;
-using System.Drawing;
-using System.Windows.Interop;
-using System.Windows.Media.Imaging;
-using System.Windows;
-using System.Runtime.InteropServices;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
 
 namespace IconifyFolder.ViewModels
 {
-    public partial class MainViewModel: ObservableObject
+    public partial class MainViewModel : ObservableObject
     {
+        [ObservableProperty]
         private string _selectedFolder;
+        
+        [ObservableProperty]
         private string _targetFolder;
+        
+        [ObservableProperty]
         private bool _autoScanSubfolders;
 
-        public string SelectedFolder
-        {
-            get => _selectedFolder;
-            set => SetProperty(ref _selectedFolder, value);
-        }
-
-        public string TargetFolder
-        {
-            get => _targetFolder;
-            set => SetProperty(ref _targetFolder, value);
-        }
-
-        public bool AutoScanSubfolders
-        {
-            get => _autoScanSubfolders;
-            set => SetProperty(ref _autoScanSubfolders, value);
-        }
+      
 
         public ObservableCollection<ProgramItem> Programs { get; } = new ObservableCollection<ProgramItem>();
 
+        #region BrowseFolder&GetIcons
+
         [RelayCommand]
-        public void BrowseFolder() 
+        public void BrowseFolder()
         {
             using (var dialog = new FolderBrowserDialog())
             {
@@ -61,8 +41,50 @@ namespace IconifyFolder.ViewModels
                 }
             }
         }
+
+        private void LoadPrograms()
+        {
+            Programs.Clear();
+
+            if (string.IsNullOrEmpty(SelectedFolder))
+                return;
+
+            var searchOption = AutoScanSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+            string folderName = new DirectoryInfo(SelectedFolder).Name;
+
+            foreach (var file in Directory.GetFiles(SelectedFolder, "*.exe", searchOption))
+            {
+                var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(file);
+                var icon = GetIcon(file);
+
+                // 检查文件名是否包含文件夹名的一部分
+                bool isCloselyMatching = fileNameWithoutExtension.Contains(folderName, StringComparison.OrdinalIgnoreCase);
+                if (isCloselyMatching)
+                {
+                    Programs.Add(new ProgramItem
+                    {
+                        Name = Path.GetFileName(file),
+                        FilePath = file,
+                        Icon = icon
+                    });
+                    break;
+                }
+
+            }
+        }
+
+        private Icon GetIcon(string filePath)
+        {
+            // 实现从可执行文件中提取图标的逻辑
+            return Icon.ExtractAssociatedIcon(filePath);
+        }
+        #endregion
+
+
+        #region ApplyIcons
         [RelayCommand]
-        public void ApplyIcons() {
+        public void ApplyIcons()
+        {
             foreach (var program in Programs)
             {
                 if (program.IsSelected)
@@ -308,12 +330,20 @@ namespace IconifyFolder.ViewModels
             }
         }
 
+        #endregion
 
 
         [RelayCommand]
-        public void SelectAlld() { }
+        public void SelectAll() 
+        {
+
+         
+        }
         [RelayCommand]
-        public void DeselectAll() { }
+        public void DeSelectAll() 
+        {
+            
+        }
 
         [RelayCommand]
         public void CheckBoxChecked(ProgramItem item)
@@ -328,41 +358,5 @@ namespace IconifyFolder.ViewModels
 
 
 
-        private void LoadPrograms()
-        {
-            Programs.Clear();
-
-            if (string.IsNullOrEmpty(SelectedFolder))
-                return;
-
-            var searchOption = AutoScanSubfolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-            string folderName = new DirectoryInfo(SelectedFolder).Name;
-
-            foreach (var file in Directory.GetFiles(SelectedFolder, "*.exe", searchOption))
-            {
-                var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(file);
-                var icon = GetIcon(file);
-
-                // 检查文件名是否包含文件夹名的一部分
-                bool isCloselyMatching = fileNameWithoutExtension.Contains(folderName, StringComparison.OrdinalIgnoreCase);
-                if (isCloselyMatching)
-                {
-                    Programs.Add(new ProgramItem
-                    {
-                        Name = Path.GetFileName(file),
-                        FilePath = file,
-                        Icon = icon
-                    });
-                    break;
-                }
-                
-            }
-        }
-
-        private Icon GetIcon(string filePath)
-        {
-            // 实现从可执行文件中提取图标的逻辑
-            return Icon.ExtractAssociatedIcon(filePath);
-        }
     }
 }
